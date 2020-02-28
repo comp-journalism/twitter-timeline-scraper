@@ -1,5 +1,6 @@
 # Project-specific
 data/*
+*.DS_Store
 
 # Github's default python stuff:
 
