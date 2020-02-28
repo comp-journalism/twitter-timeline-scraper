@@ -35,6 +35,7 @@ def main():
 
     print("Log in to twitter,")
     input("then press Enter to continue...")
+    pdb.set_trace()
 
     timeline = scrape_timeline(driver)
     timeline_df = pd.DataFrame(timeline)
@@ -42,12 +43,36 @@ def main():
 
 
 
-def scrape_timeline(driver,n_tweets=5):
+def scrape_timeline(driver,n_tweets=50):
     # initialize the return object
     tweet_links = []
+    blacklist=['/photo','/media_tags']
 
+    while len(tweet_links) < n_tweets:
+        # collect tweet elements
+        els =driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
+
+        # add the ones not already collected
+        for el in els:
+            href = el.get_attribute('href')
+            if href in tweet_links or any([w in href for w in blacklist]):
+                continue
+            tweet_links.append(href)
+
+        # move down the page
+        ActionChains(driver).move_to_element(els[-1]).perform()
+        # let things load
+        time.sleep(0.2)
+
+    return tweet_links
+
+    '''
     # collect elements
-    els = driver.find_elements_by_xpath("//div[@aria-label='Share Tweet']")
+    # driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
+    # els =driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
+    ActionChains(driver).move_to_element(els[-1]).perform()
+
+    for el in els: tweet_links.append(el.get_attribute('href'))
 
     # add tweet links to the list
     for i in range(n_tweets):
@@ -62,7 +87,7 @@ def scrape_timeline(driver,n_tweets=5):
     #TODO this part of the script needs to scroll and get new visible elements
     # at each point, rather than using a single list of elements from start
 
-    return tweet_links
+    return tweet_links'''
 
 
 
