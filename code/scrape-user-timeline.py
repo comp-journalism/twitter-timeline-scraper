@@ -66,29 +66,6 @@ def scrape_timeline(driver,n_tweets=50):
 
     return tweet_links
 
-    '''
-    # collect elements
-    # driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
-    # els =driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
-    ActionChains(driver).move_to_element(els[-1]).perform()
-
-    for el in els: tweet_links.append(el.get_attribute('href'))
-
-    # add tweet links to the list
-    for i in range(n_tweets):
-        actions = ActionChains(driver)
-        actions.move_to_element(els[i+1])
-        actions.perform()
-        time.sleep(1)
-        els[i].click()
-        tweet_links.append(get_tweet_link(driver))
-        els = driver.find_elements_by_xpath("//div[@aria-label='Share Tweet']")
-
-    #TODO this part of the script needs to scroll and get new visible elements
-    # at each point, rather than using a single list of elements from start
-
-    return tweet_links'''
-
 
 
 def get_tweet_link(driver):
