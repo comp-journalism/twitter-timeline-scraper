@@ -18,11 +18,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium import webdriver
-from bs4 import BeautifulSoup
 from datetime import datetime
 
 # download chromedriver from https://chromedriver.chromium.org/downloads
-path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
+#path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
+path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
 SCROLL_TIME= 0.25
 DEBUG=True
@@ -51,10 +51,17 @@ for a in articles:
 def main():
     for u in users_list:
         print("collecting for {}".format(u['username']))
+        options = webdriver.ChromeOptions() 
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--start-maximized')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--headless')
+        options.add_argument("--enable-javascript")
 
         my_service = service.Service(path_to_chromedriver)
         my_service.start()
-        driver = webdriver.Remote(my_service.service_url)
+        driver = webdriver.Remote(my_service.service_url,desired_capabilities=options.to_capabilities())
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
@@ -69,10 +76,10 @@ def main():
 def log_in_user(driver, user):
     # log in
     print("Logging in...")
+
     username_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='text']")))
-    password_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='password']")))
-    print("Found element!")
     username_input.send_keys(user['username'])
+    password_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='password']")))
     password_input.send_keys(user['password'])
     login_button = driver.find_element_by_xpath("//span[(text()='Log in')]")
     login_button.click()
