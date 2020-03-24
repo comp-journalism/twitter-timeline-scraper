@@ -142,6 +142,7 @@ def scrape_timeline_as_articles_lxml(driver,n_tweets=50):
     # add tweets until there are n_tweets in the return object
     while len(all_tweets) < n_tweets:
         # collect article elements
+        _ = WebDriverWait(driver, WAIT_TIME).until(EC.presence_of_element_located((By.TAG_NAME, "article")))
         articles=driver.find_elements_by_tag_name('article')
         tmp_tweets = []
         tmp_tweet_links = []
@@ -179,6 +180,7 @@ def scrape_timeline_as_articles_lxml(driver,n_tweets=50):
 
         print("scrolling...")
         # move down the page to last article examined
+        _ = WebDriverWait(driver, WAIT_TIME).until(EC.presence_of_element_located((By.TAG_NAME, "article")))
         articles=driver.find_elements_by_tag_name('article')
         ActionChains(driver).move_to_element(articles[-1]).perform()
         # let things load a bit
