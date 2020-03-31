@@ -24,15 +24,15 @@ from datetime import datetime
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-SCROLL_TIME= 0.25
+SCROLL_TIME= 2.0
 DEBUG=True
 
 
-path_to_save = '../data/'
+data_path= '/home/ubuntu/twitter-timeline-scraper/data'
 
 twitter_url = 'https://twitter.com/home'
 
-sys.path.append('../credentials')
+sys.path.append('/home/ubuntu/twitter-timeline-scraper/credentials')
 from users import users_list
 
 '''
@@ -71,6 +71,8 @@ def main():
         except ConnectionRefusedError as e:
             print("Connection error...")
         print("Done!")
+        time.sleep(WAIT_TIME)
+        driver.close()
 
 
 def log_in_user(driver, user):
@@ -90,7 +92,7 @@ def collect_timelines(driver,user,n_tweets=100):
     # set up saving path
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-at-%H%M')
-    path_to_save = '../data/{}'.format(user['username'])
+    path_to_save = '{}/{}'.format(data_path,user['username'])
     if not os.path.exists(path_to_save):
         os.makedirs(path_to_save)
 
@@ -184,6 +186,7 @@ def scrape_timeline_as_articles_lxml(driver,n_tweets=50):
         all_tweets += tmp_tweets[new_index:]
         all_tweet_links += tmp_tweet_links[new_index:]
         print("\nAdding {} fresh tweets out of {} parsed".format(len(tmp_tweets[new_index:]), len(tmp_tweets)))
+        print("{} / {} tweets collected".format(len(all_tweets), n_tweets))
 
         print("scrolling...")
         # move down the page to last article examined
