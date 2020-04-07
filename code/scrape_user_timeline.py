@@ -19,6 +19,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from datetime import datetime
+from random import shuffle
 
 # download chromedriver from https://chromedriver.chromium.org/downloads
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
@@ -34,7 +35,7 @@ twitter_url = 'https://twitter.com/home'
 
 sys.path.append('/home/ubuntu/twitter-timeline-scraper/credentials')
 from users import users_list
-
+shuffle(users_list)
 '''
 from scrape_user_timeline import *
 my_service = service.Service(path_to_chromedriver)
@@ -70,10 +71,12 @@ def main():
             print("Timed out...")
         except ConnectionRefusedError as e:
             print("Connection error...")
+        except Exception as e:
+            print("Unrecognized error: {}".format(str(e)))
+
         print("Done!")
         time.sleep(WAIT_TIME)
-        driver.close()
-
+        driver.quit()
 
 def log_in_user(driver, user):
     # log in
