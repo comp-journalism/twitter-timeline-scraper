@@ -72,7 +72,7 @@ def main():
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=20)
+            collect_timelines(driver,user=u,n_tweets=50)
         except TimeoutException as e:
             print("Timed out...")
         except ConnectionRefusedError as e:
@@ -119,6 +119,7 @@ def collect_timelines(driver,user,n_tweets=100):
 
     # switch to chronological
     switch_to_chronological(driver)
+    time.sleep(randint(1,4))
 
     # collect chronological timeline
     chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
