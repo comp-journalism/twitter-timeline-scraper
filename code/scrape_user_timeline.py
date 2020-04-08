@@ -156,23 +156,12 @@ def scrape_timeline(driver,n_tweets=50):
 
     try:
         to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
-        signal.alarm(0)
-        return to_return
     except Timeout:
-        print("Timed out once! refreshing...")
-        driver.refresh()
+        to_return = []
+        print("Timed out!")
+    signal.alarm(0)
+    return to_return
     
-    # one more chance (could/should be rewritten with for loop)
-    signal.alarm(timeout_secs)
-    try:
-        to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
-        signal.alarm(0)
-        return to_return
-    except Timeout:
-        signal.alarm(0)
-        print("Timed out second time!")
-        return []
-
 
 
 
