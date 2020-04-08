@@ -26,7 +26,7 @@ from datetime import datetime
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-SCROLL_TIME= 2.0 + (randint(0,10)/10)
+SCROLL_TIME= 1.5 + (randint(0,10)/10)
 DEBUG=False
 
 
@@ -56,7 +56,8 @@ for a in articles:
 
 def main():
     for u in users_list:
-        print("collecting for {}".format(u['username']))
+        print("\n-------------------------------")
+        print("COLLECTING for {}".format(u['username']))
         options = webdriver.ChromeOptions() 
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--window-size=1920,1080')
@@ -71,7 +72,7 @@ def main():
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=100)
+            collect_timelines(driver,user=u,n_tweets=50)
         except TimeoutException as e:
             print("Timed out...")
         except ConnectionRefusedError as e:
@@ -80,12 +81,13 @@ def main():
             print("Unrecognized error: {}".format(str(e)))
 
         print("Done!")
-        time.sleep(WAIT_TIME)
+        time.sleep(SCROLL_TIME)
         driver.quit()
 
 def log_in_user(driver, user):
     # log in
     print("Logging in...")
+    time.sleep(SCROLL_TIME)
 
     username_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='text']")))
     username_input.send_keys(user['username'])
@@ -102,6 +104,7 @@ def collect_timelines(driver,user,n_tweets=100):
     # set up saving path
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-at-%H%M')
+    print(now_str)
     path_to_save = '{}/{}'.format(data_path,user['username'])
     if not os.path.exists(path_to_save):
         os.makedirs(path_to_save)
@@ -116,6 +119,7 @@ def collect_timelines(driver,user,n_tweets=100):
 
     # switch to chronological
     switch_to_chronological(driver)
+    time.sleep(randint(1,4))
 
     # collect chronological timeline
     chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
@@ -146,7 +150,7 @@ def handler(sig, frame):
 
 def scrape_timeline(driver,n_tweets=50):
     # should scrape at least two tweets per second, if not, timeout
-    timeout_secs = int(n_tweets/2)
+    timeout_secs = int(n_tweets/1.5)
 
     # register for SIGALRM events
     signal.signal(signal.SIGALRM, handler)
@@ -222,6 +226,9 @@ def scrape_timeline_as_articles_lxml(driver,n_tweets=50):
         all_tweet_links += tmp_tweet_links[new_index:]
         print("\nAdding {} fresh tweets out of {} parsed".format(len(tmp_tweets[new_index:]), len(tmp_tweets)))
         print("{} / {} tweets collected".format(len(all_tweets), n_tweets))
+        if len(all_tweets) >= n_tweets:
+            print("Continuing...")
+            continue # early break if possible
 
         print("scrolling...")
         # move down the page to last article examined
