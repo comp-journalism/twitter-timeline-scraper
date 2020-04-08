@@ -63,7 +63,7 @@ def main():
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--start-maximized')
         options.add_argument('--no-sandbox')
-        options.add_argument('--headless')
+        #options.add_argument('--headless')
         options.add_argument("--enable-javascript")
 
         my_service = service.Service(path_to_chromedriver)
@@ -118,6 +118,7 @@ def collect_timelines(driver,user,n_tweets=100):
     alg_timeline_df.to_csv(file_path,index=False)
 
     # switch to chronological
+    time.sleep(randint(1,4))
     switch_to_chronological(driver)
     time.sleep(randint(1,4))
 
@@ -133,10 +134,13 @@ def collect_timelines(driver,user,n_tweets=100):
 
 def switch_to_chronological(driver):
     #button = driver.find_element_by_xpath("//div[@aria-label='Top Tweets on']/div")
+    print("Finding chronological toggle...")
     button = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//div[@aria-label='Top Tweets on']/div")))
+    print("Clicking chronological toggle...")
     button.click()
     latest_button = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//span[(text()='See latest Tweets instead')]")))
     #latest_button = driver.find_element_by_xpath("//span[(text()='See latest Tweets instead')]")
+    print("Switching to chronological...")
     latest_button.click()
     print("Switched to chronological timeline!")
 
@@ -149,8 +153,8 @@ def handler(sig, frame):
     raise Timeout
 
 def scrape_timeline(driver,n_tweets=50):
-    # should scrape at least two tweets per second, if not, timeout
-    timeout_secs = int(n_tweets/1.5)
+    # should scrape at least one tweet per second, if not, timeout
+    timeout_secs = int(n_tweets/1)
 
     # register for SIGALRM events
     signal.signal(signal.SIGALRM, handler)
