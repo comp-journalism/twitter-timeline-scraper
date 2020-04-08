@@ -6,6 +6,7 @@ import selenium.webdriver.chrome.service as service
 import pandas as pd
 import subprocess
 import lxml.html
+import signal
 import time
 import pdb
 import sys
@@ -17,23 +18,27 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from random import shuffle,randint
 from selenium import webdriver
 from datetime import datetime
-from random import shuffle
 
 # download chromedriver from https://chromedriver.chromium.org/downloads
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-SCROLL_TIME= 2.0
-DEBUG=True
+SCROLL_TIME= 1.0 + (randint(0,10)/10)
+DEBUG=False
 
 
-data_path= '/home/ubuntu/twitter-timeline-scraper/data'
+#data_path= '/home/ubuntu/twitter-timeline-scraper/data'
+#data_path= '/Users/jbx9603/twitter-timeline-scraper/data'
+data_path= '/home/ec2-user/twitter-timeline-scraper/data'
 
 twitter_url = 'https://twitter.com/home'
 
-sys.path.append('/home/ubuntu/twitter-timeline-scraper/credentials')
+#sys.path.append('/home/ubuntu/twitter-timeline-scraper/credentials')
+#sys.path.append('../credentials')
+sys.path.append('/home/ec2-user/twitter-timeline-scraper/credentials')
 from users import users_list
 shuffle(users_list)
 '''
@@ -66,7 +71,7 @@ def main():
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=100)
+            collect_timelines(driver,user=u,n_tweets=30)
         except TimeoutException as e:
             print("Timed out...")
         except ConnectionRefusedError as e:
@@ -101,18 +106,20 @@ def collect_timelines(driver,user,n_tweets=100):
 
     # collect algorithmic timeline
     algorithmic_timeline = scrape_timeline(driver,n_tweets=n_tweets)
-    alg_timeline_df = pd.DataFrame(algorithmic_timeline)
-    file_path = '{}/{}-algorithmic-{}.csv'.format(path_to_save,user['username'],now_str) 
-    alg_timeline_df.to_csv(file_path,index=False)
+    if len(algorithmic_timeline) > 0:
+        alg_timeline_df = pd.DataFrame(algorithmic_timeline)
+        file_path = '{}/{}-algorithmic-{}.csv'.format(path_to_save,user['username'],now_str) 
+        alg_timeline_df.to_csv(file_path,index=False)
 
     # switch to chronological
     switch_to_chronological(driver)
 
     # collect chronological timeline
     chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
-    chron_timeline_df = pd.DataFrame(chronological_timeline)
-    file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
-    chron_timeline_df.to_csv(file_path,index=False)
+    if len(chronological_timeline) > 0:
+        chron_timeline_df = pd.DataFrame(chronological_timeline)
+        file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
+        chron_timeline_df.to_csv(file_path,index=False)
 
 
 
@@ -127,8 +134,40 @@ def switch_to_chronological(driver):
 
 
 
+class Timeout(Exception):
+    pass
+
+def handler(sig, frame):
+    raise Timeout
+
 def scrape_timeline(driver,n_tweets=50):
-    return scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
+    # should scrape at least two tweets per second, if not, timeout
+    timeout_secs = int(n_tweets/2)
+
+    # register for SIGALRM events
+    signal.signal(signal.SIGALRM, handler)
+
+    # finish within 40 seconds
+    signal.alarm(timeout_secs)
+
+    try:
+        to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
+        signal.alarm(0)
+        return to_return
+    except Timeout:
+        print("Timed out once! refreshing...")
+        driver.refresh()
+    
+    # one more chance (could/should be rewritten with for loop)
+    signal.alarm(timeout_secs)
+    try:
+        to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
+        signal.alarm(0)
+        return to_return
+    except Timeout:
+        signal.alarm(0)
+        print("Timed out second time!")
+        return []
 
 
 
