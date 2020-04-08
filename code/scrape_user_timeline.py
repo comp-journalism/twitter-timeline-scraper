@@ -26,7 +26,7 @@ from datetime import datetime
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-SCROLL_TIME= 1.0 + (randint(0,10)/10)
+SCROLL_TIME= 2.0 + (randint(0,10)/10)
 DEBUG=False
 
 
@@ -71,7 +71,7 @@ def main():
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=30)
+            collect_timelines(driver,user=u,n_tweets=100)
         except TimeoutException as e:
             print("Timed out...")
         except ConnectionRefusedError as e:
@@ -89,9 +89,11 @@ def log_in_user(driver, user):
 
     username_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='text']")))
     username_input.send_keys(user['username'])
+    print("Entered username...")
     password_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='password']")))
     password_input.send_keys(user['password'])
     login_button = driver.find_element_by_xpath("//span[(text()='Log in')]")
+    print("Clicking login button...")
     login_button.click()
 
 
