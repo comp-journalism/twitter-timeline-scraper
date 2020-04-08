@@ -108,20 +108,22 @@ def collect_timelines(driver,user,n_tweets=100):
 
     # collect algorithmic timeline
     algorithmic_timeline = scrape_timeline(driver,n_tweets=n_tweets)
-    if len(algorithmic_timeline) > 0:
-        alg_timeline_df = pd.DataFrame(algorithmic_timeline)
-        file_path = '{}/{}-algorithmic-{}.csv'.format(path_to_save,user['username'],now_str) 
-        alg_timeline_df.to_csv(file_path,index=False)
+    alg_timeline_df = pd.DataFrame(algorithmic_timeline)
+    file_path = '{}/{}-algorithmic-{}.csv'.format(path_to_save,user['username'],now_str) 
+    if len(algorithmic_timeline) == 0:
+        file_path = '{}/{}-algorithmic-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
+    alg_timeline_df.to_csv(file_path,index=False)
 
     # switch to chronological
     switch_to_chronological(driver)
 
     # collect chronological timeline
     chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
-    if len(chronological_timeline) > 0:
-        chron_timeline_df = pd.DataFrame(chronological_timeline)
-        file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
-        chron_timeline_df.to_csv(file_path,index=False)
+    chron_timeline_df = pd.DataFrame(chronological_timeline)
+    file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
+    if len(chronological_timeline) == 0:
+        file_path = '{}/{}-chronological-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
+    chron_timeline_df.to_csv(file_path,index=False)
 
 
 
