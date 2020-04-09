@@ -26,7 +26,7 @@ from datetime import datetime
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-MAX_N_REFRESHES=3
+MAX_N_REFRESHES=2
 SCROLL_TIME= 1.5
 DEBUG=False
 
@@ -101,7 +101,7 @@ def log_in_user(driver, user):
 
 
 
-def collect_timelines(driver,user,n_tweets=100):
+def collect_timelines(driver,user,n_tweets,chronological=False):
     # set up saving path
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-at-%H%M')
@@ -118,29 +118,28 @@ def collect_timelines(driver,user,n_tweets=100):
         file_path = '{}/{}-algorithmic-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
     alg_timeline_df.to_csv(file_path,index=False)
 
-    # switch to chronological
-    time.sleep(randint(1,4))
-    switch_to_chronological(driver)
-    time.sleep(randint(1,4))
+    if chronological:
+        # switch to chronological
+        time.sleep(randint(1,4))
+        switch_to_chronological(driver)
+        time.sleep(randint(1,4))
 
-    # collect chronological timeline
-    chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
-    chron_timeline_df = pd.DataFrame(chronological_timeline)
-    file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
-    if len(chronological_timeline) == 0:
-        file_path = '{}/{}-chronological-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
-    chron_timeline_df.to_csv(file_path,index=False)
+        # collect chronological timeline
+        chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
+        chron_timeline_df = pd.DataFrame(chronological_timeline)
+        file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
+        if len(chronological_timeline) == 0:
+            file_path = '{}/{}-chronological-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
+        chron_timeline_df.to_csv(file_path,index=False)
 
 
 
 def switch_to_chronological(driver):
-    #button = driver.find_element_by_xpath("//div[@aria-label='Top Tweets on']/div")
     print("Finding chronological toggle...")
     button = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//div[@aria-label='Top Tweets on']/div")))
     print("Clicking chronological toggle...")
     button.click()
     latest_button = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//span[(text()='See latest Tweets instead')]")))
-    #latest_button = driver.find_element_by_xpath("//span[(text()='See latest Tweets instead')]")
     print("Switching to chronological...")
     latest_button.click()
     print("Switched to chronological timeline!")
