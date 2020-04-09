@@ -77,15 +77,15 @@ def main():
         except TimeoutException as e:
             print("Timeout error...")
             users_list.append(u)
-            print("Will retry for {}...".format(u))
+            print("WILL RETRY for {}".format(u['username']))
         except ConnectionRefusedError as e:
             print("Connection error...")
             users_list.append(u)
-            print("Will retry for {}...".format(u))
+            print("WILL RETRY for {}".format(u['username']))
         except Exception as e:
             print("Unrecognized error: {}".format(str(e)))
             users_list.append(u)
-            print("Will retry for {}...".format(u))
+            print("WILL RETRY for {}".format(u['username']))
         else:
             print("No errors...")
         finally:
