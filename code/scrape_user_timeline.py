@@ -169,6 +169,7 @@ def scrape_timeline(driver,n_tweets=50):
     signal.signal(signal.SIGALRM, handler)
 
     n_fails = 0
+    to_return = [] # start with empty array
     while n_fails < MAX_N_REFRESHES:
         signal.alarm(timeout_secs) # re-arm/set alarm
         try:
@@ -176,11 +177,13 @@ def scrape_timeline(driver,n_tweets=50):
             signal.alarm(0) # disarm
             break
         except Timeout:
-            to_return = [] # save empty array
             n_fails += 1
-            print("Timeout #{}".format(n_fails))
-            signal.alarm(0) # disarm
             driver.refresh()
+            print("Timeout #{}...".format(n_fails))
+        else:
+            print("Non-timeout error in tiemout block...")
+        finally:
+            signal.alarm(0) # always disarm
 
     return to_return
     
