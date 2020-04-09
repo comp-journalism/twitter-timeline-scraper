@@ -73,7 +73,7 @@ def main():
         driver.get(twitter_url)
         try:
             log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=50)
+            collect_timelines(driver,user=u,n_tweets=50,chronological=True)
         except TimeoutException as e:
             print("Timeout error...")
             users_list.append(u)
