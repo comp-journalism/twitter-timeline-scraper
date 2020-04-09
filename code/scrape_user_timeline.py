@@ -75,15 +75,24 @@ def main():
             log_in_user(driver,user=u)
             collect_timelines(driver,user=u,n_tweets=50)
         except TimeoutException as e:
-            print("Timed out...")
+            print("Timeout error...")
+            users_list.append(u)
+            print("Will retry for {}...".format(u))
         except ConnectionRefusedError as e:
             print("Connection error...")
+            users_list.append(u)
+            print("Will retry for {}...".format(u))
         except Exception as e:
             print("Unrecognized error: {}".format(str(e)))
+            users_list.append(u)
+            print("Will retry for {}...".format(u))
+        else:
+            print("No errors...")
+        finally:
+            print("Done!")
+            time.sleep(SCROLL_TIME)
+            driver.quit()
 
-        print("Done!")
-        time.sleep(SCROLL_TIME)
-        driver.quit()
 
 def log_in_user(driver, user):
     # log in
