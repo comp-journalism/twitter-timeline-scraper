@@ -26,7 +26,8 @@ from datetime import datetime
 #path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
 path_to_chromedriver = '/usr/local/bin/chromedriver'
 WAIT_TIME = 15
-SCROLL_TIME= 1.5 + (randint(0,10)/10)
+MAX_N_REFRESHES=3
+SCROLL_TIME= 1.5
 DEBUG=False
 
 
@@ -63,7 +64,7 @@ def main():
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--start-maximized')
         options.add_argument('--no-sandbox')
-        #options.add_argument('--headless')
+        options.add_argument('--headless')
         options.add_argument("--enable-javascript")
 
         my_service = service.Service(path_to_chromedriver)
@@ -159,15 +160,20 @@ def scrape_timeline(driver,n_tweets=50):
     # register for SIGALRM events
     signal.signal(signal.SIGALRM, handler)
 
-    # finish within 40 seconds
-    signal.alarm(timeout_secs)
+    n_fails = 0
+    while n_fails < MAX_N_REFRESHES:
+        signal.alarm(timeout_secs) # re-arm/set alarm
+        try:
+            to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
+            signal.alarm(0) # disarm
+            break
+        except Timeout:
+            to_return = [] # save empty array
+            n_fails += 1
+            print("Timeout #{}".format(n_fails))
+            signal.alarm(0) # disarm
+            driver.refresh()
 
-    try:
-        to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
-    except Timeout:
-        to_return = []
-        print("Timed out!")
-    signal.alarm(0)
     return to_return
     
 
@@ -239,8 +245,9 @@ def scrape_timeline_as_articles_lxml(driver,n_tweets=50):
         _ = WebDriverWait(driver, WAIT_TIME).until(EC.presence_of_element_located((By.TAG_NAME, "article")))
         articles=driver.find_elements_by_tag_name('article')
         ActionChains(driver).move_to_element(articles[-1]).perform()
-        # let things load a bit
-        time.sleep(SCROLL_TIME)
+        # let things load a bit and don't be predictable!
+        time.sleep(SCROLL_TIME + (randint(10,50)/100))
+
 
 
     # scroll back to top of page when done
