@@ -23,75 +23,49 @@ from selenium import webdriver
 from datetime import datetime
 
 # download chromedriver from https://chromedriver.chromium.org/downloads
-#path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver'
-path_to_chromedriver = '/usr/local/bin/chromedriver'
-WAIT_TIME = 15
-MAX_N_REFRESHES=2
+path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver2'
+data_path= '/Users/jbx9603/Box/Jack/Public/twitter-timeline-scraper/output'
 SCROLL_TIME= 1.5
+WAIT_TIME = 1.5
+N_TWEETS = 50
 DEBUG=False
-
-
-#data_path= '/home/ubuntu/twitter-timeline-scraper/data'
-#data_path= '/Users/jbx9603/twitter-timeline-scraper/data'
-data_path= '/home/ec2-user/twitter-timeline-scraper/data'
 
 twitter_url = 'https://twitter.com/home'
 
-#sys.path.append('/home/ubuntu/twitter-timeline-scraper/credentials')
-#sys.path.append('../credentials')
-sys.path.append('/home/ec2-user/twitter-timeline-scraper/credentials')
-from users import users_list
-shuffle(users_list)
-'''
-from scrape_user_timeline import *
-my_service = service.Service(path_to_chromedriver)
-my_service.start()
-driver = webdriver.Remote(my_service.service_url)
-driver.get(twitter_url)
-log_in_user(driver,user=users_list[0])
-articles=driver.find_elements_by_tag_name('article')
-for a in articles:
-    dict = tweet_article_to_dict(a) 
-'''
-
 
 def main():
-    for u in users_list:
-        print("\n-------------------------------")
-        print("COLLECTING for {}".format(u['username']))
-        options = webdriver.ChromeOptions() 
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--window-size=1920,1080')
-        options.add_argument('--start-maximized')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--headless')
-        options.add_argument("--enable-javascript")
+    print("Starting!\n-------------------------------")
+    options = webdriver.ChromeOptions()
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--enable-javascript')
+    options.add_argument('--no-sandbox')
+    #options.add_argument('--window-size=1920,1080')
+    #options.add_argument('--start-maximized')
+    #options.add_argument('--headless')
+    
 
-        my_service = service.Service(path_to_chromedriver)
-        my_service.start()
-        driver = webdriver.Remote(my_service.service_url,desired_capabilities=options.to_capabilities())
-        driver.get(twitter_url)
-        try:
-            log_in_user(driver,user=u)
-            collect_timelines(driver,user=u,n_tweets=50,chronological=True)
-        except TimeoutException as e:
-            print("Timeout error...")
-            users_list.append(u)
-            print("WILL RETRY for {}".format(u['username']))
-        except ConnectionRefusedError as e:
-            print("Connection error...")
-            users_list.append(u)
-            print("WILL RETRY for {}".format(u['username']))
-        except Exception as e:
-            print("Unrecognized error: {}".format(str(e)))
-            users_list.append(u)
-            print("WILL RETRY for {}".format(u['username']))
-        else:
-            print("No errors...")
-        finally:
-            print("Done!")
-            time.sleep(SCROLL_TIME)
-            driver.quit()
+    my_service = service.Service(path_to_chromedriver)
+    my_service.start()
+    driver = webdriver.Remote(my_service.service_url,desired_capabilities=options.to_capabilities())
+    driver.get(twitter_url)
+    
+    input("(1) Log in to Twitter\n(2)Make sure you're at home/Top Tweets\n(3)Press Enter/Return to continue...")
+    
+    try:
+        collect_timelines(driver,n_tweets=N_TWEETS,chronological=True)
+    except TimeoutException as e:
+        print("Timeout error...")
+    except ConnectionRefusedError as e:
+        print("Connection error...")
+    except Exception as e:
+        print("Unrecognized error: {}".format(str(e)))
+    else:
+        print("No errors...")
+    finally:
+        print("Done!")
+        time.sleep(SCROLL_TIME)
+        driver.quit()
+
 
 
 def log_in_user(driver, user):
@@ -110,21 +84,21 @@ def log_in_user(driver, user):
 
 
 
-def collect_timelines(driver,user,n_tweets,chronological=False):
+def collect_timelines(driver,n_tweets,chronological=False):
     # set up saving path
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-at-%H%M')
     print(now_str)
-    path_to_save = '{}/{}'.format(data_path,user['username'])
+    path_to_save = '{}'.format(data_path)
     if not os.path.exists(path_to_save):
         os.makedirs(path_to_save)
 
     # collect algorithmic timeline
     algorithmic_timeline = scrape_timeline(driver,n_tweets=n_tweets)
     alg_timeline_df = pd.DataFrame(algorithmic_timeline)
-    file_path = '{}/{}-algorithmic-{}.csv'.format(path_to_save,user['username'],now_str) 
+    file_path = '{}/algorithmic-{}.csv'.format(path_to_save,now_str)
     if len(algorithmic_timeline) == 0:
-        file_path = '{}/{}-algorithmic-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
+        file_path = '{}/algorithmic-{}-NONE.csv'.format(path_to_save,now_str)
     alg_timeline_df.to_csv(file_path,index=False)
 
     if chronological:
@@ -136,9 +110,9 @@ def collect_timelines(driver,user,n_tweets,chronological=False):
         # collect chronological timeline
         chronological_timeline = scrape_timeline(driver,n_tweets=n_tweets)
         chron_timeline_df = pd.DataFrame(chronological_timeline)
-        file_path = '{}/{}-chronological-{}.csv'.format(path_to_save,user['username'],now_str) 
+        file_path = '{}/chronological-{}.csv'.format(path_to_save,now_str)
         if len(chronological_timeline) == 0:
-            file_path = '{}/{}-chronological-{}-NONE.csv'.format(path_to_save,user['username'],now_str) 
+            file_path = '{}/chronological-{}-NONE.csv'.format(path_to_save,now_str)
         chron_timeline_df.to_csv(file_path,index=False)
 
 
@@ -155,35 +129,9 @@ def switch_to_chronological(driver):
 
 
 
-class Timeout(Exception):
-    pass
-
-def handler(sig, frame):
-    raise Timeout
 
 def scrape_timeline(driver,n_tweets=50):
-    # should scrape at least one tweet per second, if not, timeout
-    timeout_secs = int(n_tweets/1)
-
-    # register for SIGALRM events
-    signal.signal(signal.SIGALRM, handler)
-
-    n_fails = 0
-    to_return = [] # start with empty array
-    while n_fails < MAX_N_REFRESHES:
-        signal.alarm(timeout_secs) # re-arm/set alarm
-        try:
-            to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
-            signal.alarm(0) # disarm
-            break
-        except Timeout:
-            n_fails += 1
-            driver.refresh()
-            print("Timeout #{}...".format(n_fails))
-        else:
-            print("Non-timeout error in tiemout block...")
-        finally:
-            signal.alarm(0) # always disarm
+    to_return = scrape_timeline_as_articles_lxml(driver,n_tweets=n_tweets)
 
     return to_return
     
@@ -318,116 +266,6 @@ def tweet_article_to_dict_lxml(a_html):
 
 
 
-def scrape_timeline_as_articles(driver,n_tweets=50):
-    '''
-    OLD
-    scrapes tweets using selenium and 'article' key
-    '''
-    # initialize the return object
-    tweets = []
-    tweet_links = []
-    first_article=driver.find_element_by_tag_name('article')
-    minimum_y = first_article.location['y']
-    while len(tweets) < n_tweets:
-        # collect article elements
-        articles=driver.find_elements_by_tag_name('article')
-        for a in articles:
-            try:
-                # check that article is beyond the first tweet and has tweet link
-                if (not a.find_elements_by_xpath('.//a[contains(@href,"/status/")]')) or (a.location['y'] < minimum_y):
-                    continue
-                to_add = tweet_article_to_dict(a)
-                # skip if already collected
-                if to_add['tweet_link'] in tweet_links:
-                    continue
-                tweet_links.append(to_add['tweet_link'])
-                tweets.append(to_add)
-            except StaleElementReferenceException as e:
-                print("Stale element")
-            except ConnectionRefusedError as e:
-                print("Connection issue")
-        print("\tscrolling...")
-        # move down the page to last article examined
-        articles=driver.find_elements_by_tag_name('article')
-        ActionChains(driver).move_to_element(articles[-1]).perform()
-        # let things load
-        time.sleep(SCROLL_TIME)
-    # scroll back to top of page when done
-    driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.HOME)
-    return tweets
-
-
-
-def tweet_article_to_dict(a):
-    '''
-    OLD
-    turns article/tweet element to dict using selenium
-    '''
-    to_add = {}
-    for link in a.find_elements_by_tag_name('a'):
-        link_url = link.get_attribute('href')
-        if link_url.count('/') == 3 and to_add.get('user_link')==None:
-            to_add['user_link'] = link_url
-        elif '/status/' in link_url and to_add.get('tweet_link')==None:
-            to_add['tweet_link'] = link_url
-        elif '/i/' in link_url and to_add.get('info_link')==None:
-            to_add['info_link'] = link_url
-            to_add['info_text'] = ' '.join(list(set([c.text for c in link.find_elements_by_xpath('.//span')])))
-        elif 't.co' in link_url: #and to_add.get('external_text')==None:
-            to_add['external_link'] = link_url
-            text_blurbs = []
-            for blurb in link.find_elements_by_xpath('.//span'):
-                if blurb.text not in text_blurbs and blurb.text.count(' ') > 0:
-                    text_blurbs.append(blurb.text)
-                elif blurb.text.count(' ') == 0 and blurb.text.count('.') > 0:
-                    to_add['external_domain'] = blurb.text
-            if len(text_blurbs) > 0:
-                to_add['external_title'] = text_blurbs[0]
-            if len(text_blurbs) > 2:
-                to_add['external_text'] = text_blurbs[-1]
-                
-        if a.find_elements_by_xpath(".//span[(text()='Promoted')]"):
-            to_add['promoted'] = 'promoted'
-    if DEBUG:
-        print('\n\n')
-        for k in to_add.keys():
-            print('{} : {}'.format(k, to_add[k]))
-    return to_add
-
-
-
-def tweet_article_to_dict_old(a):
-    '''
-    OLD
-    turns article/tweet element to dict using selenium
-    '''
-    to_add = {}
-    to_add['tweet_link']=a.find_element_by_xpath('.//a[contains(@href,"/status/")]').get_attribute('href')
-    print(to_add['tweet_link'])
-    to_add['metadata'] = a.find_elements_by_xpath(".//div[@role='group']")[-1].get_attribute('aria-label')
-    print("\t{}".format(to_add['metadata']))
-    if a.find_elements_by_xpath('.//a[contains(@href,"/i/user")]'):
-        to_add['info_text']=a.find_element_by_xpath('.//a[contains(@href,"/i/user")]').text
-        to_add['info_link']=a.find_element_by_xpath('.//a[contains(@href,"/i/user")]').get_attribute('href')
-    if a.find_elements_by_xpath('.//a[contains(@href,"t.co")]'):
-        print("\texternal link")
-        link_element = a.find_element_by_xpath('.//a[contains(@href,"t.co")]')
-        to_add['external_url']=link_element.get_attribute('href')
-        to_add['external_real']=link_element.text
-        try:
-            to_add['external_url_text']= link_element.find_elements_by_tag_name('span')[0].text
-            to_add['external_url_title'] = link_element.find_elements_by_tag_name('span')[1].text
-        except:
-            print("No text/title tho")
-            pass
-    if a.find_elements_by_xpath(".//span[(text()='Promoted')]"):
-        to_add['promoted'] = 'promoted'
-        print('\tpromoted!')
-    return to_add
-
-
-
-
 
 def scrape_timeline_as_hrefs(driver,n_tweets=50):
     # initialize the return object
@@ -458,7 +296,7 @@ def scrape_timeline_as_hrefs(driver,n_tweets=50):
 
 
 def get_tweet_link(driver):
-    # old method based on copy and paste button lol
+    # old method based on copy and paste button
     # but good for demos!
     time.sleep(0.5)
     copy_button=driver.find_element_by_xpath("//span[contains(text(),'Copy link to')]")
