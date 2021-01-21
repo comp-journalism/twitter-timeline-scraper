@@ -2,14 +2,31 @@
 scrape_user_timeline.py
 '''
 
+
+# path variables
+# download updated chromedriver from https://chromedriver.chromium.org/downloads
+# put
+path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver2'
+data_path= 'output/'
+
+# probably won't change :)
+twitter_url = 'https://twitter.com/home'
+
+
+# timing and output variables
+N_TWEETS = 50
+SCROLL_TIME= 1.5
+WAIT_TIME = 1.5
+DEBUG=False
+
+
+
+# imports
 import selenium.webdriver.chrome.service as service
 import pandas as pd
-import subprocess
 import lxml.html
-import signal
 import time
 import pdb
-import sys
 import os
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
@@ -18,19 +35,10 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from random import shuffle,randint
+from random import randint
 from selenium import webdriver
 from datetime import datetime
 
-# download chromedriver from https://chromedriver.chromium.org/downloads
-path_to_chromedriver = '/Users/jbx9603/Applications/chromedriver2'
-data_path= '/Users/jbx9603/Box/Jack/Public/twitter-timeline-scraper/output'
-SCROLL_TIME= 1.5
-WAIT_TIME = 1.5
-N_TWEETS = 50
-DEBUG=False
-
-twitter_url = 'https://twitter.com/home'
 
 
 def main():
@@ -43,7 +51,6 @@ def main():
     #options.add_argument('--start-maximized')
     #options.add_argument('--headless')
     
-
     my_service = service.Service(path_to_chromedriver)
     my_service.start()
     driver = webdriver.Remote(my_service.service_url,desired_capabilities=options.to_capabilities())
@@ -66,21 +73,6 @@ def main():
         time.sleep(SCROLL_TIME)
         driver.quit()
 
-
-
-def log_in_user(driver, user):
-    # log in
-    print("Logging in...")
-    time.sleep(SCROLL_TIME)
-
-    username_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='text']")))
-    username_input.send_keys(user['username'])
-    print("Entered username...")
-    password_input = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='password']")))
-    password_input.send_keys(user['password'])
-    login_button = driver.find_element_by_xpath("//span[(text()='Log in')]")
-    print("Clicking login button...")
-    login_button.click()
 
 
 
@@ -114,6 +106,37 @@ def collect_timelines(driver,n_tweets,chronological=False):
         if len(chronological_timeline) == 0:
             file_path = '{}/chronological-{}-NONE.csv'.format(path_to_save,now_str)
         chron_timeline_df.to_csv(file_path,index=False)
+
+    make_report_card(alg_df=alg_timeline_df, chron_df=chron_timeline_df, save_path = path_to_save)
+
+
+
+def make_report_card(alg_df, chron_df, save_path):
+    report_card = dict()
+    report_card['algorithmic_timeline'] = {}
+    report_card['chronological_timeline'] = {}
+    report_card['chronological_timeline']['tweets_collected'] = len(chron_df)
+    report_card['algorithmic_timeline']['tweets_collected'] = len(alg_df)
+    report_card['chronological_timeline']['external_links'] = len(chron_df[chron_df.n_external_links>0])
+    report_card['algorithmic_timeline']['external_links'] = len(alg_df[alg_df.n_external_links>0])
+    report_card['chronological_timeline']['promoted'] = len(chron_df[chron_df.promoted=='promoted'])
+    report_card['algorithmic_timeline']['promoted'] = len(alg_df[alg_df.promoted=='promoted'])
+    report_card['chronological_timeline']['total_accounts'] = len(set(chron_df.screen_name.tolist()))
+    report_card['algorithmic_timeline']['total_accounts'] = len(set(alg_df.screen_name.tolist()))
+    chron_top = chron_df.screen_name.value_counts().head(10)
+    alg_top = alg_df.screen_name.value_counts().head(10)
+    chron_top.to_csv('{}/chronological_top_accounts.csv'.format(save_path))
+    alg_top.to_csv('{}/algorithmic_top_accounts.csv'.format(save_path))
+    report_card['chronological_timeline']['top_account'] = '{} ({} tweets)'.format(chron_top.index[0], chron_top[0])
+    report_card['algorithmic_timeline']['top_account'] = '{} ({} tweets)'.format(alg_top.index[0], alg_top[0])
+    report_card_df = pd.DataFrame(report_card)
+
+    print("---------REPORT CARD-----------\n\n")
+    print(report_card_df)
+    print("\n\n-------------------------------")
+
+    report_card_df.to_csv('{}/report_card.csv'.format(save_path))
+    print("saved at {}/report_card.csv".format(save_path))
 
 
 
@@ -234,8 +257,7 @@ def tweet_article_to_dict_lxml(a_html):
             to_add['info_link'] = link_url
             info_texts = [c.text for c in link.xpath('.//span') if c.text!= None]
             to_add['info_text'] = ' '.join(pd.Series(info_texts).drop_duplicates().tolist())
-            #to_add['info_text'] = ' '.join(list(set([c.text for c in link.xpath('.//span') if c.text!= None])))
-        elif 't.co' in link_url: #and to_add.get('external_text')==None:
+        elif 't.co' in link_url: 
             to_add['external_link'] = link_url
             external_links.add(link_url)
             text_blurbs = []
@@ -254,6 +276,11 @@ def tweet_article_to_dict_lxml(a_html):
         if len(a_lxml.xpath(".//span[(text()='Promoted')]"))>0:
             to_add['promoted'] = 'promoted'
             to_add['tweet_link'] = to_add['user_link']
+
+    # get final user link and add handle
+    to_add['user_link'] = to_add['tweet_link'][:to_add['tweet_link'].find('/status')]
+    to_add['screen_name'] = to_add['user_link'].replace('https://twitter.com/','')
+
     if DEBUG:
         print('\n\n')
         for k in to_add.keys():
@@ -266,50 +293,6 @@ def tweet_article_to_dict_lxml(a_html):
 
 
 
-
-def scrape_timeline_as_hrefs(driver,n_tweets=50):
-    # initialize the return object
-    tweet_links = []
-    blacklist=['/photo','/media_tags']
-
-    while len(tweet_links) < n_tweets:
-        # collect tweet elements
-        els =driver.find_elements_by_xpath('//a[contains(@href,"/status/")]')
-
-        # add the ones not already collected
-        for el in els:
-            href = el.get_attribute('href')
-            if href in tweet_links or any([w in href for w in blacklist]):
-                continue
-            tweet_links.append(href)
-
-        # move down the page
-        ActionChains(driver).move_to_element(els[-1]).perform()
-        # let things load
-        time.sleep(SCROLL_TIME)
-    
-    # scroll back to top of page
-    driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.HOME)
-
-    return tweet_links
-
-
-
-def get_tweet_link(driver):
-    # old method based on copy and paste button
-    # but good for demos!
-    time.sleep(0.5)
-    copy_button=driver.find_element_by_xpath("//span[contains(text(),'Copy link to')]")
-    time.sleep(0.5)
-    copy_button.click()
-
-    p = subprocess.Popen(['pbpaste'], stdout=subprocess.PIPE)
-    retcode = p.wait()
-    link = p.stdout.read()
-    print("Link: {}".format(link))
-
-    return(link)
-    
 
 
 if __name__ == "__main__":
